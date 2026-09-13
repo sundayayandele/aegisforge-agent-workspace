@@ -1,0 +1,145 @@
+appId: ai.aegisforge.agentworkspace
+productName: AegisForge Agent Workspace
+
+# Nami is Dainami's, and without this line electron-builder said otherwise. With
+# no `copyright` it builds NSHumanReadableCopyright out of `author`, so every
+# shipped bundle carried "Copyright © 2026 Calvin Hia" in its Info.plist and in
+# the About panel, a string nobody had written anywhere. The year is the
+# release's, so it is written out rather than taken from the build machine's
+# clock. main.js sets the same string on the About panel for dev runs.
+copyright: Copyright © 2026 Sunday Ayandele and contributors
+directories:
+  output: release
+  buildResources: build
+
+# Releases go to a DIFFERENT repo from the source, and that is the point.
+#
+# Installers and update metadata go to this repo's own releases. An app that
+# updates itself has to read its feed from somewhere public, and this repo is
+# public, so no token ships inside a copy of Nami and CI needs no PAT — the
+# built-in GITHUB_TOKEN reaches its own repo. See .github/workflows/release.yml.
+#
+# Downloads used to live in a separate mrdainami/nami-releases because the
+# source was closed. Nothing had shipped when it opened, so they moved here
+# rather than leaving the star count on a repo with no code in it.
+publish:
+  provider: github
+  owner: sundayayandele
+  repo: aegisforge-agent-workspace
+  # Drafts, deliberately. A build lands where it can be looked at and the notes
+  # written before anyone can download it, and pressing Publish stays a human
+  # decision — the moment it goes live is the moment every installed Nami starts
+  # offering it. Set releaseType: release here if that ever becomes tedious.
+  releaseType: draft
+
+files:
+  - src/**/*
+  - package.json
+  - '!**/*.map'
+
+  # --- weight, in descending order of how much it saves -------------------
+  # 170 MB: the ORT tarball carries every platform. win32 + linux is DirectML and
+  # CUDA that a Mac build can never load.
+  - '!node_modules/onnxruntime-node/bin/napi-v3/win32/**'
+  - '!node_modules/onnxruntime-node/bin/napi-v3/linux/**'
+  # 34 MB: and of the two Mac slices, keep only the one being built.
+  - '!node_modules/onnxruntime-node/bin/napi-v3/darwin/!(${arch})/**'
+
+  # 68 MB: transformers declares onnxruntime-web as a hard dependency, but the
+  # build we actually load (dist/transformers.node.mjs) imports only node:*,
+  # onnxruntime-common, onnxruntime-node and sharp. Nothing reaches for -web.
+  - '!node_modules/onnxruntime-web/**'
+
+  # 28 MB: of that dist we need exactly one file. The rest is the browser build,
+  # its 21.6 MB ORT wasm, and source maps — none of it reachable from main.
+  - '!node_modules/@huggingface/transformers/dist/!(transformers.node.mjs)'
+
+# whisper-tiny.en, so a fresh install transcribes with no network and no
+# account. main.js copies this into userData on first launch: the app bundle is
+# read-only, and a later model upgrade has to land somewhere writable.
+# Populated by `npm run fetch-model` (wired to prepack).
+extraResources:
+  - from: build/models
+    to: models
+    filter: ['**/*']
+
+# Native binaries cannot be dlopen'd from inside an asar archive.
+asarUnpack:
+  - '**/node_modules/onnxruntime-node/bin/**'
+  - '**/node_modules/@lydell/node-pty/**'
+  - '**/*.node'
+
+# The dmg is what the user downloads, so it is what carries the quarantine flag
+# and what Gatekeeper judges first. electron-builder signs the app and leaves the
+# container unsigned, which reads as "unidentified developer" before anyone has
+# seen the app. Sign it here; notarize it in the hook below.
+dmg:
+  sign: true
+afterAllArtifactBuild: scripts/notarize-dmg.mjs
+
+# No version in the installer's name, on purpose. The download button on
+# nami.dainami.ai points at
+#   github.com/mrdainami/nami/releases/latest/download/Nami-arm64.dmg
+# and that path can only resolve if the newest release holds an asset with
+# exactly that name. Put the version back in and the site's link dies at the
+# next release — silently, because GitHub answers a missing asset with its own
+# 404 page rather than anything the site could notice.
+# The version is still in the release title, the tag, and the app's About.
+artifactName: ${productName}-${arch}.${ext}
+
+linux:
+  category: Development
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    # What a person downloads. Carries the quarantine flag, gets judged by
+    # Gatekeeper, and is what the website links to.
+    - target: dmg
+      arch: [arm64, x64]
+    # What the updater installs, and the only thing it can install: on macOS
+    # electron-updater hands the swap to Squirrel.Mac, which unpacks a zip of
+    # the .app. A release with only dmgs on it has nothing an update can use.
+    # Nobody clicks this file; it exists for latest-mac.yml to point at.
+    - target: zip
+      arch: [arm64, x64]
+  # What Nami offers to open. Declaring a type only puts Nami in Finder's
+  # "Open With" — it never takes a default; the person still picks one.
+  #
+  # The list is short on purpose. These are documents Nami renders as a tile
+  # today and that a workbench plausibly owns. Images, video, audio and PDF
+  # belong to Preview, and .json / .yml belong to an editor: appearing in
+  # everything's Open With menu is noise, not a feature. Keep this in step with
+  # OPEN_EXT in src/main/open-with.js, which decides where the file lands.
+  #
+  # rank Alternate, not electron-builder's default of Default: a workbench does
+  # not own markdown. Alternate keeps Nami in the Open With list without ever
+  # winning the type on its own, so installing Nami never silently changes what
+  # a double-click does. Setting it as the default stays a deliberate act —
+  # Get Info → Open With → Change All.
+  fileAssociations:
+    - ext: [md, markdown, mdx]
+      name: Markdown document
+      role: Editor
+      rank: Alternate
+    - ext: [txt, text]
+      name: Plain text document
+      role: Editor
+      rank: Alternate
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSMicrophoneUsageDescription: >-
+      Nami uses your microphone so you can dictate into a session instead of
+      typing.

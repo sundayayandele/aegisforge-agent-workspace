@@ -1,0 +1,23 @@
+.governance-head { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:18px; }
+.governance-head h1, .governance-audit-head h2 { margin:0 0 6px; font-size:1.25rem; }
+.governance-head p { margin:0; max-width:590px; color:var(--muted); line-height:1.5; }
+.integrity { flex:0 0 auto; border:1px solid var(--rule); padding:6px 9px; font-size:.78rem; }
+.integrity.ok { color:#21633d; background:rgba(64,165,104,.1); }
+.integrity.bad { color:#8a2e2e; background:rgba(190,58,58,.1); }
+.governance-profiles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:24px; }
+.governance-profile { appearance:none; text-align:left; display:flex; justify-content:space-between; gap:10px; min-height:112px; padding:14px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); cursor:pointer; }
+.governance-profile:hover, .governance-profile.picked { border-color:var(--ink); box-shadow:3px 3px 0 var(--shadow-mid); }
+.governance-profile b, .governance-profile small { display:block; }
+.governance-profile b { margin-bottom:7px; font-size:1rem; }
+.governance-profile small { color:var(--muted); font-size:.82rem; line-height:1.45; }
+.profile-state { align-self:flex-start; font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; }
+.governance-audit-head { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--rule); margin-bottom:4px; }
+.governance-events { min-height:140px; }
+.governance-event { display:grid; grid-template-columns:74px minmax(0,1fr) auto; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px dashed var(--rule); }
+.governance-event b, .governance-event small { display:block; }
+.governance-event small, .governance-event time { color:var(--muted); font-size:.76rem; }
+.event-risk { font-size:.7rem; text-transform:uppercase; letter-spacing:.07em; }
+.event-risk.critical, .event-risk.high { color:#a32b2b; }
+.event-risk.medium { color:#8a5a14; }
+.governance-empty, .governance-loading { color:var(--muted); padding:24px 0; }
+@media (max-width: 850px) { .governance-profiles { grid-template-columns:1fr; } .governance-head { display:block; } .integrity { display:inline-block; margin-top:12px; } }
