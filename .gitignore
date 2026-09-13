@@ -32,6 +32,13 @@ _local/
 .opencode/
 docs/superpowers/
 
+# A clone of sundayayandele/AI-Agents-Workspace that ended up nested in here by
+# accident. Its files are byte-identical copies of this repo's own root, and git
+# recorded the folder as a gitlink with no .gitmodules behind it — which pushes
+# as an empty, unclickable grey folder on GitHub and carries none of the
+# contents. Ignored so it cannot be re-added by a stray `git add .`.
+AI-Agents-Workspace/
+
 # Source art and old mockups. 11MB that nothing builds from: the mascot in the
 # app is inline SVG, and the icon the installer uses is build/icon.png. Every
 # clone was paying for them. The design they document is now the app itself,
