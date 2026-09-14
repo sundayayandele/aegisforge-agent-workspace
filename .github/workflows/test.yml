@@ -1,6 +1,10 @@
 # .github/workflows/test.yml
+
 name: test
-on: [push, pull_request]
+on: 
+  push:
+  pull_request:
+  workflow_dispatch:  # Add this line
 jobs:
   test:
     runs-on: ubuntu-latest
